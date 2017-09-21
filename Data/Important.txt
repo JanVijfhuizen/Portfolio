@@ -1,0 +1,2 @@
+The Map generator does not include art assets. This is because this is from a school
+project and the art assets are not mine.
