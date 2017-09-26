@@ -1,2 +1,6 @@
 The Map generator does not include art assets. This is because this is from a school
 project and the art assets are not mine.
+
+Why don't I have visual feedback on the GOAP and Neural Network but only debugs?
+I'm currently working on a school project where I use both, but since it's due a few weeks, maybe even days
+before my internship starts I don't have the time to wait with my portfolio.
