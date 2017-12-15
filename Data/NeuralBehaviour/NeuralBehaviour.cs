@@ -24,7 +24,7 @@ public abstract class NeuralBehaviour : MonoBehaviour {
     }
     private List<NeuralNetwork> generation = new List<NeuralNetwork>();
     [SerializeField]
-    private int generationSize = 24, mutateCount = 4;
+    private int generationSize = 24, mutateCount = 4, elitistCount = 6;
     [SerializeField]
     private int[] hiddenLayers;
     [SerializeField, Range(0, 100)]
@@ -60,13 +60,14 @@ public abstract class NeuralBehaviour : MonoBehaviour {
             Initialize();
         nOutput.Convert(Network.GetNext(GetInput(false)), generationNum, Network);
         nOutput.progression = progression;
+        nOutput.currentlyTrainedNetworkIndex = currentlyTrainedNetworkIndex;
         return nOutput;
     }
 
     private NeuralOutput nOutput;
     protected struct NeuralOutput
     {
-        public float progression;
+        public float progression, currentlyTrainedNetworkIndex;
         public List<float> output;
         public int generation;
         public NeuralNetwork network;
@@ -76,6 +77,20 @@ public abstract class NeuralBehaviour : MonoBehaviour {
             this.output = output;
             this.generation = generation;
             this.network = network;
+        }
+    }
+
+    public int BestNetworkScore
+    {
+        get
+        {
+            float ret = generation[0].score;
+            for (int net = 0; net < generationSize; net++)
+            {
+                if (generation[net].score > ret)
+                    ret = generation[net].score;
+            }
+            return (int)ret;
         }
     }
 
@@ -95,30 +110,58 @@ public abstract class NeuralBehaviour : MonoBehaviour {
     private Coroutine training;
     private IEnumerator Shift()
     {
-        int half = generation.Count / 2, succeeded = half - mutateCount;
-
-        for (int net = 0; net < half; net++)
+        //remove bad ones
+        for (int net = 0; net < generationSize - elitistCount; net++)
             generation.RemoveAt(generation.Count - 1);
 
-        for (int net = 0; net < succeeded; net++)
-            generation.Add(ConvertNeuralNetwork(generation[net]));
-
-        for (int mutant = 0; mutant < mutateCount; mutant++)
-            generation.Add(new NeuralNetwork(inputCount, outputSize, hiddenLayers, mutateChance));
-
-        progression = 0;
-        foreach (NeuralNetwork net in generation)
+        //breed good networks
+        List<NeuralNetwork> ranParents = new List<NeuralNetwork>();
+        int ran;
+        for (int net = 0; net < generationSize - elitistCount - mutateCount; net++)
         {
-            progression += (float)100 / generationSize;
-            yield return StartCoroutine(Rate(net));
+            ranParents.Clear();
+            if(parentsPerChild > elitistCount)
+            {
+                Debug.LogError(
+                    "The generation is nog large enough / " +
+                    "too many parents per child. Code could not be executed.");
+                yield break;
+            }
+            while (ranParents.Count < parentsPerChild) {
+                ran = Random.Range(0, elitistCount);
+                if (ranParents.Contains(generation[ran]))
+                    continue;
+                ranParents.Add(generation[ran]);
+            }
+            generation.Add(Combine(ranParents));
+        }
+        //add mutants
+        for (int mutant = 0; mutant < mutateCount; mutant++)
+        {
+            NeuralNetwork mutatedNet = Clone(generation[mutant]);
+            mutatedNet.Shift();
+            generation.Add(mutatedNet);
         }
 
         generation.Sort();
+
+        progression = 0;
+        currentlyTrainedNetworkIndex = 0;
+        foreach (NeuralNetwork net in generation)
+        {
+            yield return StartCoroutine(Rate(net));
+            currentlyTrainedNetworkIndex++;
+            progression += (float)100 / generationSize;
+        }
+
+        generation.Sort();
+
         generationNum++;
         training = null;    
     }
 
     private static float progression;
+    private static int currentlyTrainedNetworkIndex;
 
     #region Neural Network Data
 
@@ -286,6 +329,18 @@ public abstract class NeuralBehaviour : MonoBehaviour {
                         weights[x][y][z] = Ran(weights[x][y][z]);
         }
 
+        public void Combine(List<NeuralNetwork> parents)
+        {
+            int ran;
+            for (int x = 0; x < weights.Length; x++)
+                for (int y = 0; y < weights[x].Length; y++)
+                    for (int z = 0; z < weights[x][y].Length; z++)
+                    {
+                        ran = Random.Range(0, parents.Count);
+                        weights[x][y][z] = parents[ran].weights[x][y][z];
+                    }
+        }
+
         private int r;
         private float Ran(float f)
         {
@@ -351,11 +406,14 @@ public abstract class NeuralBehaviour : MonoBehaviour {
         return ret;
     }
 
-    private NeuralNetwork ConvertNeuralNetwork(NeuralNetwork other)
+    [SerializeField]
+    private int parentsPerChild = 3;
+    private NeuralNetwork Combine(List<NeuralNetwork> breeders)
     {
-        NeuralNetwork ret = Clone(other);
-        ret.Shift();
-        return ret;
+        NeuralNetwork net = Clone(breeders[0]);
+        net.Combine(breeders);
+        net.Shift();
+        return net;
     }
 
     private static int RanInt(int i)
