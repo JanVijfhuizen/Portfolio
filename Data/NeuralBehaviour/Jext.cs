@@ -7,12 +7,39 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Jext
 {
     public static class Methods
     {
         #region Game Specific
+
+        public enum FadeType {FadeIn, FadeOut, TotalFade }
+        public static IEnumerator FadeToBlack(Image image, float speed, FadeType type)
+        {
+            if(type != FadeType.FadeIn)
+                while (image.color.a < 0.9)
+                {
+                    image.FadeToBlack(true, speed);
+                    yield return null;
+                }
+
+            if(type != FadeType.FadeOut)
+                while (image.color.a > 0)
+                {
+                    image.FadeToBlack(false, speed);
+                    yield return null;
+                }
+        }
+
+        private static Image FadeToBlack(this Image image, bool add, float fadeSpeed)
+        {
+            Color color = image.color;
+            color.a += Time.deltaTime * fadeSpeed * (add ? 1 : -1);
+            image.color = color;
+            return image;
+        }
 
         public static void Reset(this Rigidbody rb)
         {

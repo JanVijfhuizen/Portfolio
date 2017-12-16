@@ -462,10 +462,8 @@ public abstract class NeuralBehaviour : MonoBehaviour {
 
     #region Loading / Saving
 
-    [SerializeField]
-    protected string folderNameSaveData;
-    [SerializeField, Tooltip("Only write the name of the file, not the extension (.xml)")]
-    protected string fileNameSaveData;
+    [Tooltip("Only write the name of the file, not the extension (.xml)")]
+    public string fileNameSaveData;
     private string _filePath;
 
     /// <summary>
@@ -539,7 +537,7 @@ public abstract class NeuralBehaviour : MonoBehaviour {
 
 #if UNITY_STANDALONE
 
-        _filePath = Application.dataPath + s + folderNameSaveData + s + fileNameSaveData + ".xml";
+        _filePath = Application.dataPath + s + fileNameSaveData + ".xml";
 
 #endif
 
