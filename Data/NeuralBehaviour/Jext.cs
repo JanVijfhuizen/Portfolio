@@ -15,6 +15,16 @@ namespace Jext
     {
         #region Game Specific
 
+        /// <summary>
+        /// Uses the Tahn Function.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static float Activation(float value)
+        {
+            return (float)Math.Tanh(value);
+        }
+
         public enum FadeType {FadeIn, FadeOut, TotalFade }
         public static IEnumerator FadeToBlack(Image image, float speed, FadeType type)
         {
@@ -48,6 +58,25 @@ namespace Jext
 
             rb.isKinematic = true;
             rb.isKinematic = false;
+        }
+
+        public static int RandomIndex<T>(this List<T> self)
+        {
+            return UnityEngine.Random.Range(0, self.Count - 1);
+        }
+
+        public static List<T> AddList<T>(this List<T> self, List<T> other, bool duplicatesAllowed)
+        {
+            foreach (T t in other)
+                if(!self.Contains(t) || duplicatesAllowed)
+                    self.Add(t);
+            return self;
+        }
+
+        public static List<T> RemoveList<T>(this List<T> self, List<T> other)
+        {
+            self.RemoveAll(x => other.Contains(x));
+            return self;
         }
 
         #endregion
@@ -128,6 +157,14 @@ namespace Jext
                 stream.Seek(0, SeekOrigin.Begin);
                 return (T)formatter.Deserialize(stream);
             }
+        }
+
+        public static List<T> CloneList<T>(this List<T> source)
+        {
+            List<T> ret = new List<T>();
+            foreach (T t in source)
+                ret.Add(t);
+            return ret;
         }
 
         #endregion
